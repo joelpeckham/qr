@@ -1,5 +1,16 @@
 /**
- * Converts SVG element to PNG blob
+ * Converts an SVG element to a PNG blob
+ * 
+ * @param svgElement - The SVG element to convert
+ * @param width - The desired width of the PNG in pixels
+ * @param height - The desired height of the PNG in pixels
+ * @param transparent - Whether to use a transparent background (default: false)
+ * @returns A Promise that resolves to a PNG Blob
+ * @throws Error if canvas context cannot be obtained or PNG generation fails
+ * 
+ * @example
+ * const blob = await svgToPng(svgElement, 512, 512, true);
+ * downloadBlob(blob, 'qrcode.png');
  */
 export async function svgToPng(
   svgElement: SVGSVGElement,
@@ -219,7 +230,14 @@ export async function svgToPng(
 }
 
 /**
- * Downloads a blob as a file
+ * Downloads a blob as a file by creating a temporary download link
+ * 
+ * @param blob - The blob to download
+ * @param filename - The name of the file to download
+ * 
+ * @example
+ * const blob = new Blob([data], { type: 'image/png' });
+ * downloadBlob(blob, 'qrcode.png');
  */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -233,7 +251,13 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Downloads SVG as file
+ * Downloads an SVG element as a file
+ * 
+ * @param svgElement - The SVG element to download
+ * @param filename - The name of the file to download (should end with .svg)
+ * 
+ * @example
+ * downloadSvg(qrCodeSvg, 'qrcode.svg');
  */
 export function downloadSvg(svgElement: SVGSVGElement, filename: string): void {
   const svgData = new XMLSerializer().serializeToString(svgElement);
@@ -242,7 +266,15 @@ export function downloadSvg(svgElement: SVGSVGElement, filename: string): void {
 }
 
 /**
- * Validates PNG size (1-5000px)
+ * Validates that a PNG size is within acceptable bounds
+ * 
+ * @param size - The size in pixels to validate
+ * @returns true if size is between 1 and 5000 pixels (inclusive), false otherwise
+ * 
+ * @example
+ * if (validatePngSize(512)) {
+ *   // Size is valid
+ * }
  */
 export function validatePngSize(size: number): boolean {
   return size >= 1 && size <= 5000;

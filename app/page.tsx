@@ -1,27 +1,44 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useState, useRef, useEffect } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import { svgToPng, downloadSvg, downloadBlob, validatePngSize } from "@/lib/qr-utils";
+import { normalizeUrl, isValidUrl, urlToFilename } from "@/lib/url-utils";
+import { UrlInput } from "@/components/UrlInput";
+import { QRCodeDisplay } from "@/components/QRCodeDisplay";
+import { DownloadControls } from "@/components/DownloadControls";
+import { PngSettings } from "@/components/PngSettings";
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [pngSize, setPngSize] = useState([512]);
   const [transparentBg, setTransparentBg] = useState(false);
+  const [downloadingPng, setDownloadingPng] = useState(false);
+  const [downloadingSvg, setDownloadingSvg] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const qrRef = useRef<SVGSVGElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [errorContainerRef] = useAutoAnimate();
   const [qrContainerRef] = useAutoAnimate();
-  const [shortUrlRef] = useAutoAnimate();
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  // Reset copied state after 2 seconds
+  useEffect(() => {
+    if (copied) {
+      const timer = setTimeout(() => setCopied(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copied]);
 
   const handleUrlChange = (newUrl: string) => {
     setUrl(newUrl);
@@ -32,32 +49,27 @@ export default function Home() {
     }
   };
 
-  const handleGenerate = async () => {
-    // Clear previous errors
+  const handleGenerate = async (isRetry = false) => {
+    // Clear previous errors and success messages
     setError(null);
-    // Don't clear shortUrl here - keep the previous QR visible until new one is ready
-    // This prevents jarring layout shift
+    setSuccess(null);
+    if (!isRetry) {
+      setRetryCount(0);
+    }
 
     // Validate URL format
     if (!url.trim()) {
       setError("Please enter a URL");
-      // Only clear shortUrl if validation fails
       setShortUrl(null);
       return;
     }
 
-    let isValidUrl = false;
-    try {
-      new URL(url);
-      isValidUrl = true;
-    } catch {
-      setError("Please enter a valid URL (must start with http:// or https://)");
-      // Only clear shortUrl if validation fails
-      setShortUrl(null);
-      return;
-    }
-
-    if (!isValidUrl) {
+    // Normalize URL (add https:// if missing)
+    const normalizedUrl = normalizeUrl(url);
+    
+    // Validate normalized URL
+    if (!isValidUrl(normalizedUrl)) {
+      setError("Please enter a valid URL");
       setShortUrl(null);
       return;
     }
@@ -65,35 +77,87 @@ export default function Home() {
     // Shorten URL via API route
     setLoading(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
       const response = await fetch("/api/shorten", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ long_url: url }),
+        body: JSON.stringify({ long_url: normalizedUrl }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to shorten URL");
+        const errorMessage = errorData.error || "Failed to shorten URL";
+        
+        // Retry logic for 5xx errors
+        if (response.status >= 500 && retryCount < 2) {
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => handleGenerate(true), 1000 * (retryCount + 1));
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       setShortUrl(result.short_url);
       setError(null);
+      setSuccess("QR code generated successfully!");
+      setRetryCount(0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to shorten URL. Please try again.");
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Request timed out. Please try again.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to shorten URL. Please try again.");
+      }
       setShortUrl(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownloadSvg = () => {
-    if (!qrRef.current || !qrValue) return;
+  const qrValue = shortUrl;
 
-    const filename = `qrcode-${Date.now()}.svg`;
-    downloadSvg(qrRef.current, filename);
+  const handleCopyUrl = async () => {
+    if (!shortUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shortUrl);
+      setCopied(true);
+      setSuccess("URL copied to clipboard!");
+    } catch (err) {
+      setError("Failed to copy URL to clipboard");
+    }
+  };
+
+  const handleDownloadSvg = () => {
+    if (!qrRef.current || !qrValue) {
+      setError("QR code is not available. Please generate a QR code first.");
+      return;
+    }
+
+    setDownloadingSvg(true);
+    setError(null);
+    try {
+      // Generate filename from long URL
+      const normalizedUrl = normalizeUrl(url);
+      const urlBasedFilename = urlToFilename(normalizedUrl);
+      const filename = urlBasedFilename 
+        ? `${urlBasedFilename}.svg`
+        : `qrcode-${Date.now()}.svg`;
+      downloadSvg(qrRef.current, filename);
+      setSuccess("SVG downloaded successfully!");
+    } catch (err) {
+      setError("Failed to download SVG. Please try again.");
+    } finally {
+      setDownloadingSvg(false);
+    }
   };
 
   const handleDownloadPng = async () => {
@@ -108,20 +172,26 @@ export default function Home() {
       return;
     }
 
+    setDownloadingPng(true);
+    setError(null);
     try {
       const blob = await svgToPng(qrRef.current, size, size, transparentBg);
-      const filename = `qrcode-${Date.now()}.png`;
+      // Generate filename from long URL
+      const normalizedUrl = normalizeUrl(url);
+      const urlBasedFilename = urlToFilename(normalizedUrl);
+      const filename = urlBasedFilename 
+        ? `${urlBasedFilename}.png`
+        : `qrcode-${Date.now()}.png`;
       downloadBlob(blob, filename);
-      // Clear any previous errors on success
-      setError(null);
+      setSuccess("PNG downloaded successfully!");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to generate PNG. Please try again.";
       console.error("PNG generation error:", err);
       setError(errorMessage);
+    } finally {
+      setDownloadingPng(false);
     }
   };
-
-  const qrValue = shortUrl;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -129,116 +199,44 @@ export default function Home() {
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">No Bullshit QR Codes</h1>
           <p className="text-muted-foreground">
-            fukin bitch ass shit right here
+            Generate QR codes instantly with automatic URL shortening
           </p>
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="url">URL</Label>
-            <div className="flex gap-2">
-              <Input
-                ref={inputRef}
-                id="url"
-                type="text"
-                placeholder="https://example.com"
-                value={url}
-                onChange={(e) => handleUrlChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleGenerate();
-                  }
-                }}
-                disabled={loading}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleGenerate}
-                disabled={loading || !url.trim()}
-                variant="default"
-              >
-                {loading ? "Generating..." : "Generate"}
-              </Button>
-            </div>
-            <div ref={errorContainerRef}>
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-            </div>
-            <div ref={shortUrlRef}>
-              {shortUrl && (
-                <p className="text-sm text-muted-foreground">
-                  Shortened: <a href={shortUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{shortUrl}</a>
-                </p>
-              )}
-            </div>
-          </div>
+          <UrlInput
+            url={url}
+            loading={loading}
+            error={error}
+            success={success}
+            shortUrl={shortUrl}
+            copied={copied}
+            onUrlChange={handleUrlChange}
+            onGenerate={() => handleGenerate()}
+            onCopy={handleCopyUrl}
+          />
 
           <div ref={qrContainerRef}>
             {qrValue && (
               <div className="space-y-6">
-                <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg border">
-                  <QRCodeSVG
-                    ref={qrRef}
-                    value={qrValue}
-                    size={256}
-                    level="H"
-                    includeMargin={true}
+                <QRCodeDisplay value={qrValue} qrRef={qrRef} />
+
+                <div className="space-y-4">
+                  <DownloadControls
+                    downloadingSvg={downloadingSvg}
+                    downloadingPng={downloadingPng}
+                    onDownloadSvg={handleDownloadSvg}
+                    onDownloadPng={handleDownloadPng}
+                  />
+
+                  <PngSettings
+                    pngSize={pngSize}
+                    transparentBg={transparentBg}
+                    onPngSizeChange={setPngSize}
+                    onTransparentBgChange={setTransparentBg}
                   />
                 </div>
-
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <Button
-                    onClick={handleDownloadSvg}
-                    className="flex-1"
-                    variant="default"
-                  >
-                    Download SVG
-                  </Button>
-                  <Button
-                    onClick={handleDownloadPng}
-                    className="flex-1"
-                    variant="default"
-                  >
-                    Download PNG
-                  </Button>
-                </div>
-
-                <div className="space-y-4 border-t pt-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="png-size">PNG Size: {pngSize[0]}px</Label>
-                    </div>
-                    <Slider
-                      id="png-size"
-                      value={pngSize}
-                      onValueChange={setPngSize}
-                      min={100}
-                      max={5000}
-                      step={50}
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>100px</span>
-                      <span>5000px</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="transparent-bg">Transparent Background</Label>
-                    <Switch
-                      id="transparent-bg"
-                      checked={transparentBg}
-                      onCheckedChange={setTransparentBg}
-                    />
-                  </div>
-                </div>
               </div>
-            </div>
             )}
           </div>
         </div>
