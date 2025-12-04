@@ -8,6 +8,7 @@ import { UrlInput } from "@/components/UrlInput";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { DownloadControls } from "@/components/DownloadControls";
 import { PngSettings } from "@/components/PngSettings";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -195,6 +196,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <ThemeToggle />
       <main className="w-full max-w-2xl space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">No Bullshit QR Codes</h1>

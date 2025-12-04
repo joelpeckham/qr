@@ -10,7 +10,7 @@ interface QRCodeDisplayProps {
 
 export function QRCodeDisplay({ value, qrRef }: QRCodeDisplayProps) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg border">
+    <div className="flex flex-col items-center justify-center p-8 bg-card rounded-lg border">
       <QRCodeSVG
         ref={qrRef}
         value={value}
