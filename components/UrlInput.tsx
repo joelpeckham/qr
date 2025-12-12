@@ -43,9 +43,9 @@ export function UrlInput({
   const [shortUrlRef] = useAutoAnimate();
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <Label htmlFor="url">URL</Label>
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Input
           ref={inputRef}
           id="url"
@@ -63,7 +63,7 @@ export function UrlInput({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className="flex-1"
+          className="w-full sm:flex-1"
           aria-label="Enter URL to generate QR code"
           aria-describedby={error ? "url-error" : undefined}
         />
@@ -72,11 +72,12 @@ export function UrlInput({
           disabled={loading || !url.trim()}
           variant="default"
           aria-label="Generate QR code"
+          className="w-full sm:w-auto sm:shrink-0"
         >
           {loading ? "Generating..." : "Generate"}
         </Button>
       </div>
-      <div className="flex items-center justify-between pt-1">
+      <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:gap-3">
         <Label htmlFor="shorten-url">Shorten URL</Label>
         <Switch
           id="shorten-url"

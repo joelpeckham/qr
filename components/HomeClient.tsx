@@ -236,11 +236,11 @@ export function HomeClient() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ThemeToggle />
-      <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <main className="mx-auto w-full max-w-2xl space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight">No Bullshit QR Code Generator</h1>
-            <p className="text-muted-foreground">
+      <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-10">
+        <main className="mx-auto w-full max-w-2xl space-y-6 sm:space-y-8">
+          <div className="space-y-2 text-left">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">No Bullshit QR Code Generator</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">
               Generate a QR code from any URL. Optional URL shortening. Download SVG or PNG.
             </p>
           </div>

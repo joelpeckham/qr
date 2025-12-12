@@ -18,10 +18,11 @@ export function PngSettings({
   onTransparentBgChange,
 }: PngSettingsProps) {
   return (
-    <div className="space-y-4 border-t pt-4">
+    <div className="space-y-3 border-t pt-3">
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="png-size">PNG Size: {pngSize[0]}px</Label>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+          <Label htmlFor="png-size">PNG Size</Label>
+          <span className="text-sm text-muted-foreground tabular-nums">{pngSize[0]}px</span>
         </div>
         <Slider
           id="png-size"
@@ -38,7 +39,7 @@ export function PngSettings({
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         <Label htmlFor="transparent-bg">Transparent Background</Label>
         <Switch
           id="transparent-bg"

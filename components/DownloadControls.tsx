@@ -17,10 +17,10 @@ export function DownloadControls({
   onDownloadPng,
 }: DownloadControlsProps) {
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col gap-2 sm:flex-row">
       <Button
         onClick={onDownloadSvg}
-        className="flex-1"
+        className="w-full sm:flex-1"
         variant="default"
         disabled={downloadingSvg || downloadingPng}
         aria-label="Download QR code as SVG"
@@ -39,7 +39,7 @@ export function DownloadControls({
       </Button>
       <Button
         onClick={onDownloadPng}
-        className="flex-1"
+        className="w-full sm:flex-1"
         variant="default"
         disabled={downloadingPng || downloadingSvg}
         aria-label="Download QR code as PNG"

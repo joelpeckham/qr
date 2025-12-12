@@ -43,11 +43,11 @@ export default function UrlToQrPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-1 px-4 py-10">
-        <main className="mx-auto w-full max-w-2xl space-y-8">
-          <header className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-tight">URL to QR Code</h1>
-            <p className="text-muted-foreground">
+      <div className="flex-1 px-4 py-8 sm:py-10">
+        <main className="mx-auto w-full max-w-2xl space-y-6 sm:space-y-8">
+          <header className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">URL to QR Code</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">
               Turn any link into a QR code. No fluff: paste a URL, generate, and download SVG/PNG.
             </p>
             <Link href="/" className="underline underline-offset-4 hover:text-foreground">

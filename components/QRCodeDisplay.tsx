@@ -37,7 +37,7 @@ export function QRCodeDisplay({
   transparentBg,
 }: QRCodeDisplayProps) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-card rounded-lg border">
+    <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-4 sm:p-8">
       <QRCodeSVG
         ref={qrSvgRef}
         value={value}

@@ -47,11 +47,11 @@ export default function FaqPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-1 px-4 py-10">
-        <main className="mx-auto w-full max-w-2xl space-y-8">
-          <header className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-tight">QR Code Generator FAQ</h1>
-            <p className="text-muted-foreground">Quick answers, no fluff.</p>
+      <div className="flex-1 px-4 py-8 sm:py-10">
+        <main className="mx-auto w-full max-w-2xl space-y-6 sm:space-y-8">
+          <header className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">QR Code Generator FAQ</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">Quick answers, no fluff.</p>
             <Link href="/" className="underline underline-offset-4 hover:text-foreground">
               Back to the generator →
             </Link>

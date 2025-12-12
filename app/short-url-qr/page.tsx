@@ -43,11 +43,11 @@ export default function ShortUrlQrPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-1 px-4 py-10">
-        <main className="mx-auto w-full max-w-2xl space-y-8">
-          <header className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-tight">Short URL QR Code</h1>
-            <p className="text-muted-foreground">
+      <div className="flex-1 px-4 py-8 sm:py-10">
+        <main className="mx-auto w-full max-w-2xl space-y-6 sm:space-y-8">
+          <header className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Short URL QR Code</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">
               Want a smaller, easier-to-scan QR code? A short URL can help. Generate and download SVG/PNG in seconds.
             </p>
             <Link href="/" className="underline underline-offset-4 hover:text-foreground">
