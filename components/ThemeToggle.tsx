@@ -15,9 +15,10 @@ export function ThemeToggle() {
   }, []);
 
   const handleToggle = () => {
-    // Cycle through: system -> light -> dark -> system
+    // Cycle through: system -> opposite of resolved theme -> dark -> system
     if (theme === "system") {
-      setTheme("light");
+      // Switch to the opposite of the current resolved theme
+      setTheme(resolvedTheme === "dark" ? "light" : "dark");
     } else if (theme === "light") {
       setTheme("dark");
     } else {
