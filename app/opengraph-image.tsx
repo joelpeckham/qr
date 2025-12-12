@@ -21,7 +21,7 @@ export default function OpenGraphImage() {
         }}
       >
         <div style={{ fontSize: 22, opacity: 0.85, marginBottom: 16 }}>qr.jpeckham.com</div>
-        <div style={{ fontSize: 74, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1.05 }}>
+        <div style={{ fontSize: 74, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1.05, display: "flex", flexDirection: "column" }}>
           No Bullshit
           <br />
           QR Code Generator
