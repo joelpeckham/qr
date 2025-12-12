@@ -1,16 +1,17 @@
-# QR Code Generator
+# No Bullshit QR Code Generator
 
-A simple, fast QR code generator that can shorten URLs (optional) and create QR codes. Built with Next.js, React, and TypeScript.
+A simple, fast QR code generator for URLs with **optional** URL shortening. Built with Next.js, React, and TypeScript.
 
 ## Features
 
+- **URL → QR (fast)**: Paste a URL, generate instantly
 - **Optional URL Shortening**: If configured, URLs are shortened via the Spoo.me API before generating QR codes
 - **Works without an API key**: If `SPOO_ME_API_KEY` is not set (or Spoo fails), the QR code will encode the normalized long URL instead
 - **Multiple Export Formats**: Download QR codes as SVG or PNG
-- **Customizable PNG Export**: Adjust PNG size (100-5000px) and toggle transparent backgrounds
-- **Copy to Clipboard**: Easily copy shortened URLs
+- **Customizable PNG Export**: Adjust PNG size (1–5000px) and toggle transparent backgrounds
+- **Copy to Clipboard**: Copy the QR destination URL (shortened when available)
 - **Smart URL Handling**: Automatically adds `https://` protocol if missing
-- **Accessible**: Built with accessibility in mind (ARIA labels, keyboard navigation)
+- **Dark mode**: Theme toggle in the UI
 - **Responsive Design**: Works on all device sizes
 
 ## Getting Started
@@ -53,6 +54,12 @@ pnpm dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Routes
+
+- **`/`**: The QR code generator UI
+- **`/api/shorten`**: URL normalization + optional shortening (used by the UI when “Shorten URL” is enabled)
+- **SEO/FAQ pages**: `/qr-code-generator`, `/url-to-qr`, `/short-url-qr`, `/faq`
+
 ## Environment Variables
 
 | Variable | Description | Required |
@@ -74,7 +81,7 @@ If `SPOO_ME_API_KEY` is not set (or Spoo.me is unavailable), the app will still 
 The app includes an API route at `/api/shorten` that:
 - Validates and normalizes URLs
 - Attempts to shorten URLs via Spoo.me (when configured)
-- Includes rate limiting (10 requests per minute per IP)
+- Includes rate limiting (10 requests per minute per IP; in-memory per server instance)
 - Validates request size (max 10KB)
 - Handles errors gracefully
 
@@ -114,29 +121,6 @@ The app includes an API route at `/api/shorten` that:
 { "error": "Message" }
 ```
 
-## Project Structure
-
-```
-qr/
-├── app/
-│   ├── api/
-│   │   └── shorten/
-│   │       └── route.ts          # API route for URL shortening
-│   ├── page.tsx                   # Main page component
-│   ├── layout.tsx                 # Root layout
-│   └── globals.css                # Global styles
-├── components/
-│   ├── ui/                        # shadcn/ui components
-│   ├── UrlInput.tsx               # URL input component
-│   ├── QRCodeDisplay.tsx         # QR code display component
-│   ├── DownloadControls.tsx       # Download buttons component
-│   └── PngSettings.tsx            # PNG settings component
-├── lib/
-│   ├── qr-utils.ts               # QR code utility functions
-│   ├── url-utils.ts               # URL normalization utilities
-│   └── spoo-api.ts                # Spoo.me API client
-└── public/                        # Static assets
-```
 
 ## Building for Production
 
@@ -165,6 +149,8 @@ The app is also compatible with other platforms that support Next.js.
 - [shadcn/ui](https://ui.shadcn.com) - UI components
 - [qrcode.react](https://www.npmjs.com/package/qrcode.react) - QR code generation
 - [Spoo.me API](https://spoo.me) - URL shortening
+- [next-themes](https://github.com/pacocoursey/next-themes) - Theme switching
+- [Vercel Analytics](https://vercel.com/docs/analytics) - Analytics (optional)
 
 ## License
 
