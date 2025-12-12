@@ -6,6 +6,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface UrlInputProps {
   url: string;
@@ -15,9 +16,11 @@ interface UrlInputProps {
   qrUrl: string | null;
   shortUrl: string | null;
   copied: boolean;
+  shouldShorten: boolean;
   onUrlChange: (url: string) => void;
   onGenerate: () => void;
   onCopy: () => void;
+  onShouldShortenChange: (shouldShorten: boolean) => void;
 }
 
 export function UrlInput({
@@ -28,9 +31,11 @@ export function UrlInput({
   qrUrl,
   shortUrl,
   copied,
+  shouldShorten,
   onUrlChange,
   onGenerate,
   onCopy,
+  onShouldShortenChange,
 }: UrlInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [errorContainerRef] = useAutoAnimate();
@@ -70,6 +75,16 @@ export function UrlInput({
         >
           {loading ? "Generating..." : "Generate"}
         </Button>
+      </div>
+      <div className="flex items-center justify-between pt-1">
+        <Label htmlFor="shorten-url">Shorten URL</Label>
+        <Switch
+          id="shorten-url"
+          checked={shouldShorten}
+          onCheckedChange={onShouldShortenChange}
+          disabled={loading}
+          aria-label="Toggle URL shortening"
+        />
       </div>
       <div ref={errorContainerRef} role="alert" aria-live="polite">
         {error && (

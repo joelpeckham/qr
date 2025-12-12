@@ -65,7 +65,7 @@ If `SPOO_ME_API_KEY` is not set (or Spoo.me is unavailable), the app will still 
 
 1. Enter a URL in the input field (with or without `https://`)
 2. Click "Generate" or press Enter
-3. The URL will be shortened and a QR code will be generated
+3. If "Shorten URL" is enabled, the URL will be shortened (when configured) and a QR code will be generated; otherwise the QR code will encode the normalized long URL
 4. Download the QR code as SVG or PNG
 5. For PNG exports, adjust the size and toggle transparent background as needed
 
