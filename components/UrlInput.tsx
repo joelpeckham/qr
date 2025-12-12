@@ -12,6 +12,7 @@ interface UrlInputProps {
   loading: boolean;
   error: string | null;
   success: string | null;
+  qrUrl: string | null;
   shortUrl: string | null;
   copied: boolean;
   onUrlChange: (url: string) => void;
@@ -24,6 +25,7 @@ export function UrlInput({
   loading,
   error,
   success,
+  qrUrl,
   shortUrl,
   copied,
   onUrlChange,
@@ -80,17 +82,41 @@ export function UrlInput({
         )}
       </div>
       <div ref={shortUrlRef}>
-        {shortUrl && (
+        {qrUrl && (
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm text-muted-foreground">
-              Shortened: <a href={shortUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{shortUrl}</a>
+              {shortUrl ? (
+                <>
+                  Shortened:{" "}
+                  <a
+                    href={shortUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    {shortUrl}
+                  </a>
+                </>
+              ) : (
+                <>
+                  URL:{" "}
+                  <a
+                    href={qrUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    {qrUrl}
+                  </a>
+                </>
+              )}
             </p>
             <Button
               onClick={onCopy}
               size="sm"
               variant="outline"
               className="h-7 px-2"
-              aria-label="Copy shortened URL to clipboard"
+              aria-label="Copy URL to clipboard"
             >
               {copied ? (
                 <>

@@ -1,10 +1,11 @@
 # QR Code Generator
 
-A simple, fast QR code generator that automatically shortens URLs and creates QR codes. Built with Next.js, React, and TypeScript.
+A simple, fast QR code generator that can shorten URLs (optional) and create QR codes. Built with Next.js, React, and TypeScript.
 
 ## Features
 
-- **Automatic URL Shortening**: URLs are automatically shortened via the Spoo.me API before generating QR codes
+- **Optional URL Shortening**: If configured, URLs are shortened via the Spoo.me API before generating QR codes
+- **Works without an API key**: If `SPOO_ME_API_KEY` is not set (or Spoo fails), the QR code will encode the normalized long URL instead
 - **Multiple Export Formats**: Download QR codes as SVG or PNG
 - **Customizable PNG Export**: Adjust PNG size (100-5000px) and toggle transparent backgrounds
 - **Copy to Clipboard**: Easily copy shortened URLs
@@ -17,7 +18,7 @@ A simple, fast QR code generator that automatically shortens URLs and creates QR
 ### Prerequisites
 
 - Node.js 18+ and npm/yarn/pnpm
-- A Spoo.me API key (optional, but recommended for production)
+- A Spoo.me API key (optional, enables URL shortening)
 
 ### Installation
 
@@ -36,17 +37,12 @@ yarn install
 pnpm install
 ```
 
-3. Create a `.env.local` file in the root directory:
-```bash
-cp .env.example .env.local
-```
-
-4. Add your Spoo.me API key to `.env.local`:
+3. (Optional) Add your Spoo.me API key to a `.env.local` file in the root directory:
 ```
 SPOO_ME_API_KEY=your_api_key_here
 ```
 
-5. Run the development server:
+4. Run the development server:
 ```bash
 npm run dev
 # or
@@ -55,7 +51,7 @@ yarn dev
 pnpm dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Environment Variables
 
@@ -63,7 +59,7 @@ pnpm dev
 |----------|-------------|----------|
 | `SPOO_ME_API_KEY` | Your Spoo.me API key for URL shortening | No (but recommended) |
 
-If `SPOO_ME_API_KEY` is not set, the app will still work but may have limited functionality depending on Spoo.me's API requirements.
+If `SPOO_ME_API_KEY` is not set (or Spoo.me is unavailable), the app will still work: the QR code will encode the normalized long URL and the UI will indicate it wasn’t shortened.
 
 ## Usage
 
@@ -77,10 +73,46 @@ If `SPOO_ME_API_KEY` is not set, the app will still work but may have limited fu
 
 The app includes an API route at `/api/shorten` that:
 - Validates and normalizes URLs
-- Shortens URLs via Spoo.me API
+- Attempts to shorten URLs via Spoo.me (when configured)
 - Includes rate limiting (10 requests per minute per IP)
 - Validates request size (max 10KB)
 - Handles errors gracefully
+
+### Request/Response
+
+**Request body**:
+
+```json
+{ "longUrl": "https://example.com" }
+```
+
+**Successful response** (shortened):
+
+```json
+{
+  "longUrl": "https://example.com",
+  "shortUrl": "https://spoo.me/abc123",
+  "qrUrl": "https://spoo.me/abc123",
+  "wasShortened": true
+}
+```
+
+**Successful response** (fallback; not shortened):
+
+```json
+{
+  "longUrl": "https://example.com",
+  "qrUrl": "https://example.com",
+  "wasShortened": false,
+  "warning": "Optional: reason shortening failed"
+}
+```
+
+**Error response**:
+
+```json
+{ "error": "Message" }
+```
 
 ## Project Structure
 

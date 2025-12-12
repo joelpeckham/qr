@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { svgToPng, downloadSvg, downloadBlob, validatePngSize } from "@/lib/qr-utils";
+import { downloadCanvasPng, downloadSvg, validatePngSize } from "@/lib/qr-utils";
 import { normalizeUrl, isValidUrl, urlToFilename } from "@/lib/url-utils";
+import type { ShortenRequestBody, ShortenResponse } from "@/lib/shorten-types";
 import { UrlInput } from "@/components/UrlInput";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { DownloadControls } from "@/components/DownloadControls";
@@ -12,6 +13,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,8 +23,8 @@ export default function Home() {
   const [downloadingPng, setDownloadingPng] = useState(false);
   const [downloadingSvg, setDownloadingSvg] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const qrRef = useRef<SVGSVGElement>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [qrContainerRef] = useAutoAnimate();
 
   // Clear success message after 3 seconds
@@ -50,17 +52,23 @@ export default function Home() {
     }
   };
 
-  const handleGenerate = async (isRetry = false) => {
+  const buildDownloadFilename = (ext: "svg" | "png"): string => {
+    const normalizedLongUrl = normalizeUrl(url);
+    const base = urlToFilename(normalizedLongUrl);
+    return base ? `${base}.${ext}` : `qrcode-${Date.now()}.${ext}`;
+  };
+
+  const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+  const handleGenerate = async () => {
     // Clear previous errors and success messages
     setError(null);
     setSuccess(null);
-    if (!isRetry) {
-      setRetryCount(0);
-    }
 
     // Validate URL format
     if (!url.trim()) {
       setError("Please enter a URL");
+      setQrUrl(null);
       setShortUrl(null);
       return;
     }
@@ -71,6 +79,7 @@ export default function Home() {
     // Validate normalized URL
     if (!isValidUrl(normalizedUrl)) {
       setError("Please enter a valid URL");
+      setQrUrl(null);
       setShortUrl(null);
       return;
     }
@@ -78,61 +87,90 @@ export default function Home() {
     // Shorten URL via API route
     setLoading(true);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const MAX_RETRIES = 2;
+      const TIMEOUT_MS = 15000;
 
-      const response = await fetch("/api/shorten", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ long_url: normalizedUrl }),
-        signal: controller.signal,
-      });
+      const body: ShortenRequestBody = { longUrl: normalizedUrl };
+      let lastError: Error | null = null;
 
-      clearTimeout(timeoutId);
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || "Failed to shorten URL";
-        
-        // Retry logic for 5xx errors
-        if (response.status >= 500 && retryCount < 2) {
-          setRetryCount(prev => prev + 1);
-          setTimeout(() => handleGenerate(true), 1000 * (retryCount + 1));
-          return;
+        try {
+          const response = await fetch("/api/shorten", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+            const errorMessage = errorData.error || "Failed to process URL";
+
+            if (response.status >= 500 && attempt < MAX_RETRIES) {
+              await delay(1000 * (attempt + 1));
+              continue;
+            }
+
+            throw new Error(errorMessage);
+          }
+
+          const result: ShortenResponse = await response.json();
+          if ("error" in result) {
+            throw new Error(result.error);
+          }
+
+          setQrUrl(result.qrUrl);
+          setShortUrl(result.wasShortened ? (result.shortUrl ?? null) : null);
+          setError(null);
+
+          if (result.wasShortened) {
+            setSuccess("QR code generated successfully!");
+          } else if (result.warning) {
+            setSuccess(`QR code generated (URL not shortened): ${result.warning}`);
+          } else {
+            setSuccess("QR code generated (URL not shortened).");
+          }
+
+          lastError = null;
+          break;
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") {
+            lastError = new Error("Request timed out. Please try again.");
+          } else {
+            lastError = err instanceof Error ? err : new Error("Failed to process URL. Please try again.");
+          }
+        } finally {
+          clearTimeout(timeoutId);
         }
-        
-        throw new Error(errorMessage);
       }
 
-      const result = await response.json();
-      setShortUrl(result.short_url);
-      setError(null);
-      setSuccess("QR code generated successfully!");
-      setRetryCount(0);
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        setError("Request timed out. Please try again.");
-      } else {
-        setError(err instanceof Error ? err.message : "Failed to shorten URL. Please try again.");
+      if (lastError) {
+        throw lastError;
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to process URL. Please try again.");
+      setQrUrl(null);
       setShortUrl(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const qrValue = shortUrl;
+  const qrValue = qrUrl;
 
   const handleCopyUrl = async () => {
-    if (!shortUrl) return;
+    if (!qrUrl) return;
 
     try {
-      await navigator.clipboard.writeText(shortUrl);
+      await navigator.clipboard.writeText(qrUrl);
       setCopied(true);
       setSuccess("URL copied to clipboard!");
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to copy URL to clipboard");
     }
   };
@@ -146,15 +184,10 @@ export default function Home() {
     setDownloadingSvg(true);
     setError(null);
     try {
-      // Generate filename from long URL
-      const normalizedUrl = normalizeUrl(url);
-      const urlBasedFilename = urlToFilename(normalizedUrl);
-      const filename = urlBasedFilename 
-        ? `${urlBasedFilename}.svg`
-        : `qrcode-${Date.now()}.svg`;
+      const filename = buildDownloadFilename("svg");
       downloadSvg(qrRef.current, filename);
       setSuccess("SVG downloaded successfully!");
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to download SVG. Please try again.");
     } finally {
       setDownloadingSvg(false);
@@ -162,12 +195,12 @@ export default function Home() {
   };
 
   const handleDownloadPng = async () => {
-    if (!qrRef.current || !qrValue) {
+    if (!qrCanvasRef.current || !qrValue) {
       setError("QR code is not available. Please generate a QR code first.");
       return;
     }
 
-    const size = pngSize[0];
+    const size = pngSize[0] ?? 512;
     if (!validatePngSize(size)) {
       setError("PNG size must be between 1 and 5000 pixels");
       return;
@@ -176,14 +209,13 @@ export default function Home() {
     setDownloadingPng(true);
     setError(null);
     try {
-      const blob = await svgToPng(qrRef.current, size, size, transparentBg);
-      // Generate filename from long URL
-      const normalizedUrl = normalizeUrl(url);
-      const urlBasedFilename = urlToFilename(normalizedUrl);
-      const filename = urlBasedFilename 
-        ? `${urlBasedFilename}.png`
-        : `qrcode-${Date.now()}.png`;
-      downloadBlob(blob, filename);
+      const filename = buildDownloadFilename("png");
+      await downloadCanvasPng(
+        qrCanvasRef.current,
+        filename,
+        size,
+        transparentBg ? undefined : "#ffffff"
+      );
       setSuccess("PNG downloaded successfully!");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to generate PNG. Please try again.";
@@ -211,17 +243,24 @@ export default function Home() {
             loading={loading}
             error={error}
             success={success}
+            qrUrl={qrUrl}
             shortUrl={shortUrl}
             copied={copied}
             onUrlChange={handleUrlChange}
-            onGenerate={() => handleGenerate()}
+            onGenerate={handleGenerate}
             onCopy={handleCopyUrl}
           />
 
           <div ref={qrContainerRef}>
             {qrValue && (
               <div className="space-y-6">
-                <QRCodeDisplay value={qrValue} qrRef={qrRef} />
+                <QRCodeDisplay
+                  value={qrValue}
+                  qrSvgRef={qrRef}
+                  qrCanvasRef={qrCanvasRef}
+                  pngSize={pngSize[0] ?? 512}
+                  transparentBg={transparentBg}
+                />
 
                 <div className="space-y-4">
                   <DownloadControls

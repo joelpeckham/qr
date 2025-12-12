@@ -18,17 +18,26 @@ export interface ShortenUrlResponse {
   private_stats: boolean;
 }
 
+/**
+ * Error thrown for non-OK responses or network failures when calling Spoo.me.
+ */
 export class SpooApiError extends Error {
   constructor(
     message: string,
     public statusCode: number,
-    public response?: any
+    public response?: unknown
   ) {
     super(message);
     this.name = "SpooApiError";
   }
 }
 
+/**
+ * Shortens a URL using the Spoo.me API.
+ *
+ * @param longUrl - The URL to shorten.
+ * @param apiKey - Optional Spoo.me API key. When omitted, Spoo may reject the request.
+ */
 export async function shortenUrl(
   longUrl: string,
   apiKey?: string
